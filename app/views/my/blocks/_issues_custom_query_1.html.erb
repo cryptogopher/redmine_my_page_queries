@@ -1,6 +1,5 @@
 <%
 qrynum = "1"
-
 unless @sidebar_queries then
   # Project specific queries and global queries
   project_ids=Array.new
@@ -32,7 +31,6 @@ end
 
 begin
   @query = IssueQuery.find(@user.pref[:others]["custom_query" + qrynum ][:id].to_i)
-  #@query = Query.find(@user.pref[:others]["custom_query" + qrynum ][:id].to_i)
   rescue ActiveRecord::RecordNotFound
     @user.pref[:others]["custom_query" + qrynum ][:id]=-1
     @user.pref.save
@@ -54,10 +52,10 @@ end
     <% end %>
     (<%= @query.issue_count%>)
 <% end %>
-    <a style="font-size: 80%" href="#" onclick="var ele = document.getElementById('custom_query_form1'); if(ele.style.display=='none') { ele.style.display='' } else { ele.style.display='none' }">modify</a>
+<a style="font-size: 80%" href="#" onclick="var ele = document.getElementById('custom_query_form<%= qrynum %>'); if(ele.style.display=='none') { ele.style.display='' } else { ele.style.display='none' }">modify</a>
   </h3>
 
-<div style="display:none" id="custom_query_form1">
+  <div style="display:none" id="custom_query_form<%= qrynum %>">
 <%= form_tag({:action => "page"}, :id => "block-form", :method => :get) do %>
 <table>
   <tr>
@@ -67,7 +65,7 @@ end
     <td>
        <select name="query">
         <option value="-1">-- none --</option>
-        <% @sidebar_queries.each do |query| -%>
+        <% @sidebar_queries.each do |query| %>
          <option value="<%= h(query.id) %>" <% if @user.pref[:others]["custom_query" + qrynum ][:id].to_i==query.id -%>selected="selected"<% end -%>><% if(query.project_id.to_i>0) -%><%= Project.visible.find(query.project_id.to_i).name + " > " %><% end -%><%= h(query.name) %></option>
         <% end -%>
        </select>
@@ -102,12 +100,12 @@ sort_clear
 <%= render :partial => 'issues/list', :locals => { :issues => @issues, :query => @query } %>
 <% end %>
 
-<% unless @query.nil? then %>
+<!-- unless @query.nil? then %>
   <% content_for :header_tags do %>
     <%= auto_discovery_link_tag(:atom, 
                             {:controller => 'issues', :action => 'index', :set_filter => 1,
                              :query_id => @query.id, :format => 'atom', :key => User.current.rss_key},
                             {:title => l(:label_assigned_to_me_issues)}) %>
   <% end %>
-<% end %>
+<% end -->
 
