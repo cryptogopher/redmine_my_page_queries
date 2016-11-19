@@ -1,5 +1,4 @@
 require 'redmine'
-require 'my_controller_patch'
 
 Redmine::Plugin.register :redmine_my_page_queries do
   name 'MyPage custom queries'

@@ -1,5 +1,8 @@
 <%
-qrynum = "1"
+query_number = "1"
+query_type = request.user_agent =~ /Mobile/ ? "mobile" : ""
+custom_query = "issues_custom_query_#{query_type}#{query_number}"
+
 unless @sidebar_queries then
   # Project specific queries and global queries
   project_ids=Array.new
@@ -15,24 +18,24 @@ unless @sidebar_queries then
     order(project_id: :desc, name: :asc)
 end
 
-if @user.pref[:others]["custom_query" + qrynum ] == nil then
-  @user.pref[:others]["custom_query" + qrynum ]=Hash.new
+if @user.pref[:others][custom_query] == nil then
+  @user.pref[:others][custom_query] = Hash[:id => -1, :limit => 10]
   @user.pref.save
-  @user.pref[:others]["custom_query" + qrynum ][:id]=-1
-  @user.pref[:others]["custom_query" + qrynum ][:limit]=10
-  @user.pref.save
+#  @user.pref[:others][custom_query][:id] = -1
+#  @user.pref[:others][custom_query][:limit] = 10
+#  @user.pref.save
 end
 
-if params["custom_query" + qrynum ]=="true" then
-  @user.pref[:others]["custom_query" + qrynum ][:id]=params[:query].to_i
-  @user.pref[:others]["custom_query" + qrynum ][:limit]=params[:limit].to_i
+if params[custom_query]=="true" then
+  @user.pref[:others][custom_query][:id] = params[:query].to_i
+  @user.pref[:others][custom_query][:limit] = params[:limit].to_i
   @user.pref.save
 end
 
 begin
-  @query = IssueQuery.find(@user.pref[:others]["custom_query" + qrynum ][:id].to_i)
+  @query = IssueQuery.find(@user.pref[:others][custom_query][:id].to_i)
   rescue ActiveRecord::RecordNotFound
-    @user.pref[:others]["custom_query" + qrynum ][:id]=-1
+    @user.pref[:others][custom_query][:id] = -1
     @user.pref.save
     @query = nil
 end
@@ -42,7 +45,7 @@ end
 <h3>-- none -- 
 <% else %>
   <h3>
-    <% if(@query.project_id!=nil) -%>
+    <% if(@query.project_id != nil) -%>
       <%= Project.visible.find(@query.project_id.to_i).name + " > " %>
     <% end -%>
     <% if @query.project.nil? then %>
@@ -52,10 +55,10 @@ end
     <% end %>
     (<%= @query.issue_count%>)
 <% end %>
-<a style="font-size: 80%" href="#" onclick="var ele = document.getElementById('custom_query_form<%= qrynum %>'); if(ele.style.display=='none') { ele.style.display='' } else { ele.style.display='none' }">modify</a>
+<a style="font-size: 80%" href="#" onclick="var ele = document.getElementById('<%= custom_query %>_form'); if(ele.style.display=='none') { ele.style.display='' } else { ele.style.display='none' }">modify</a>
   </h3>
 
-  <div style="display:none" id="custom_query_form<%= qrynum %>">
+  <div style="display:none" id="<%= custom_query %>_form">
 <%= form_tag({:action => "page"}, :id => "block-form", :method => :get) do %>
 <table>
   <tr>
@@ -66,7 +69,7 @@ end
        <select name="query">
         <option value="-1">-- none --</option>
         <% @sidebar_queries.each do |query| %>
-         <option value="<%= h(query.id) %>" <% if @user.pref[:others]["custom_query" + qrynum ][:id].to_i==query.id -%>selected="selected"<% end -%>><% if(query.project_id.to_i>0) -%><%= Project.visible.find(query.project_id.to_i).name + " > " %><% end -%><%= h(query.name) %></option>
+         <option value="<%= h(query.id) %>" <% if @user.pref[:others][custom_query][:id].to_i==query.id -%>selected="selected"<% end -%>><% if(query.project_id.to_i>0) -%><%= Project.visible.find(query.project_id.to_i).name + " > " %><% end -%><%= h(query.name) %></option>
         <% end -%>
        </select>
     </td>
@@ -74,10 +77,10 @@ end
        <label for="limit">Limit: </label>
     </td>
     <td>
-      <input type="text" size="4" maxlength="3" name="limit" value="<%= h(@user.pref[:others]["custom_query" + qrynum ][:limit]) %>" />
+      <input type="text" size="4" maxlength="3" name="limit" value="<%= h(@user.pref[:others][custom_query][:limit]) %>" />
     </td>
     <td colspan="3">
-       <input type="hidden" name="custom_query<%=   qrynum %>" value="true" /><input type="submit" value="<%= l(:button_save) %>" />
+       <input type="hidden" name="<%= custom_query %>" value="true" /><input type="submit" value="<%= l(:button_save) %>" />
     </td>
    </tr>
 </table>
@@ -85,27 +88,27 @@ end
 </div>
 
 <% if @query.nil? then %>
-<%= render :partial => 'issues/list_simple', :locals => { :issues => Array.new } %>
+  <%= render :partial => 'issues/list_simple', :locals => { :issues => Array.new } %>
 <% else %>
-<%
-sort_init(@query.sort_criteria.empty? ? [['id', 'desc']] : @query.sort_criteria)
-sort_update(@query.sortable_columns)
-@issues = @query.issues(
-  :include => [:assigned_to, :tracker, :priority, :category, :fixed_version],
-  :order => sort_clause,
-  :limit => @user.pref[:others]["custom_query" + qrynum ][:limit])
-@issue_count_by_group = @query.issue_count_by_group
-sort_clear
-%>
-<%= render :partial => 'issues/list', :locals => { :issues => @issues, :query => @query } %>
+  <%
+  sort_init(@query.sort_criteria.empty? ? [['id', 'desc']] : @query.sort_criteria)
+  sort_update(@query.sortable_columns)
+  @issues = @query.issues(
+    :include => [:assigned_to, :tracker, :priority, :category, :fixed_version],
+    :order => sort_clause,
+    :limit => @user.pref[:others][custom_query][:limit])
+  @issue_count_by_group = @query.issue_count_by_group
+  sort_clear
+  %>
+  <%= render :partial => 'issues/list', :locals => { :issues => @issues, :query => @query } %>
 <% end %>
 
-<!-- unless @query.nil? then %>
+<% unless @query.nil? then %>
   <% content_for :header_tags do %>
     <%= auto_discovery_link_tag(:atom, 
                             {:controller => 'issues', :action => 'index', :set_filter => 1,
                              :query_id => @query.id, :format => 'atom', :key => User.current.rss_key},
                             {:title => l(:label_assigned_to_me_issues)}) %>
   <% end %>
-<% end -->
+<% end %>
 
